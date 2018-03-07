@@ -4,6 +4,7 @@ library(stringr)
 library(leaflet)
 library(rvest)
 
+# get state data
 temp <- tempfile()
 download.file("http://www2.census.gov/geo/docs/reference/cenpop2010/nat_cop_1880_2010.txt",temp)
 state_pop_centers <- read.csv(temp, na.strings = '', stringsAsFactors = FALSE) %>%
@@ -11,13 +12,31 @@ state_pop_centers <- read.csv(temp, na.strings = '', stringsAsFactors = FALSE) %
   dplyr::select(-X)
 unlink(temp)
 
+# get US data
+url <- "https://www.census.gov/geo/reference/centersofpop/natcentersofpop.html"
+population <- url %>%
+  read_html() %>%
+  html_nodes("table") %>%
+  html_table()
+
+pop_df <- population[[1]][c(-1,-8), -4]
+colnames(pop_df) <- c("Year", "Lat", "Long")
+
+nat_pop <- pop_df %>%
+  mutate_all(as.numeric) %>%
+  mutate(State = "United States",
+         Long = -Long) %>%
+  arrange(Year)
+  
+
+# custom function to change into decimal coordinates
 change_coord <- function(x) {
   x <- trimws(x)
   parts <- strsplit(x, " ")
   sapply(parts, function(y)   sum(as.numeric(y) / c(1, 60, 3600)))
 }
 
-long_pop_centers <- state_pop_centers %>%
+pop_centers <- state_pop_centers %>%
   gather(key = coord_year, value = coord, -State) %>%
   mutate(Year = str_extract(coord_year, '\\d\\d\\d\\d'),
          coord_type = str_extract(coord_year, 'Lat|Long')) %>%
@@ -28,9 +47,12 @@ long_pop_centers <- state_pop_centers %>%
          Long = change_coord(Long)) %>%
   mutate(Year = as.numeric(Year),
          Lat = as.numeric(Lat),
-         Long = -as.numeric(Long))
+         Long = -as.numeric(Long)) %>%
+  bind_rows(nat_pop)
 
-or <- leaflet(data = filter(long_pop_centers, State == 'Oregon')) %>%
+save(pop_centers, file = "pop_centers.RData")
+
+or <- leaflet(data = filter(pop_centers, State == 'Oregon')) %>%
   addTiles() %>%
   addMarkers(~Long, ~Lat, popup = ~as.character(Year))
 

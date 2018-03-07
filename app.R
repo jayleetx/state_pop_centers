@@ -13,21 +13,20 @@ library(shiny)
 ui <- fluidPage(
    
    # Application title
-   titlePanel("Old Faithful Geyser Data"),
+   titlePanel("Mean Population Centers, by State"),
    
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
       sidebarPanel(
-         selectizeInput(inputId = "state",
-                     "Number of bins:",
-                     min = 1,
-                     max = 50,
-                     value = 30)
+         selectInput(inputId = "state",
+                     label = "State:",
+                     choices = c("United States", state.name),
+                     selected = "United States")
       ),
       
       # Show a plot of the generated distribution
       mainPanel(
-         plotOutput("distPlot")
+         leafletOutput("map")
       )
    )
 )
@@ -35,13 +34,15 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
    
-   output$distPlot <- renderPlot({
-      # generate bins based on input$bins from ui.R
-      x    <- faithful[, 2] 
-      bins <- seq(min(x), max(x), length.out = input$bins + 1)
-      
-      # draw the histogram with the specified number of bins
-      hist(x, breaks = bins, col = 'darkgray', border = 'white')
+   output$map <- renderLeaflet({
+     leaflet(data = filter(pop_centers, State == input$state)) %>%
+       addTiles() %>%
+       addCircleMarkers(
+         radius = 6,
+         color = "purple",
+         stroke = FALSE, fillOpacity = .5,
+         popup = ~as.character(Year)
+       )
    })
 }
 
