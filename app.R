@@ -33,17 +33,17 @@ ui <- fluidPage(
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-   
+  cols <- colorNumeric("YlGnBu", pop_centers$Year)
    output$map <- renderLeaflet({
      leaflet(data = filter(pop_centers, State == input$state)) %>%
        addTiles() %>%
        addCircleMarkers(~Long, ~Lat,
          radius = 6,
-         color = "purple",
-         stroke = FALSE, fillOpacity = .5,
+         color = ~cols(Year),
+         stroke = FALSE, fillOpacity = 1,
          popup = ~as.character(Year)
        ) %>%
-       addPolylines(data = q)
+       addPolylines(data = points_to_line(filter(pop_centers, State == input$state), "Long", "Lat"), weight = 3, color = "black")
    })
 }
 
