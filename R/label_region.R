@@ -28,5 +28,5 @@ latlong2state <- function(pointsDF) {
 
 # Test the function using points in Wisconsin and Oregon.
 testPoints <- data.frame(x = pop_centers[34:35, 3], y = pop_centers[34:35, 4])
-
-latlong2state(testPoints)
+testPointsOrig <- data.frame(x = c(-90, -120), y = c(50, 50))
+latlong2state(testPointsOrig)
