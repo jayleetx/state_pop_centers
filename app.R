@@ -37,12 +37,13 @@ server <- function(input, output) {
    output$map <- renderLeaflet({
      leaflet(data = filter(pop_centers, State == input$state)) %>%
        addTiles() %>%
-       addCircleMarkers(
+       addCircleMarkers(~Long, ~Lat,
          radius = 6,
          color = "purple",
          stroke = FALSE, fillOpacity = .5,
          popup = ~as.character(Year)
-       )
+       ) %>%
+       addPolylines(data = q)
    })
 }
 
