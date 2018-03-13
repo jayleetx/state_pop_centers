@@ -1,21 +1,15 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
 library(shiny)
+library(leaflet)
+library(dplyr)
+#data_files <- c("pop_centers.RData", "lines.RData")
+#lapply(data_files,load,.GlobalEnv)
+load("pop_centers.RData")
+source("R/make_lines.R")
 
-# Define UI for application that draws a histogram
 ui <- fluidPage(
    
-   # Application title
    titlePanel("Mean Population Centers, by State"),
    
-   # Sidebar with a slider input for number of bins 
    sidebarLayout(
       sidebarPanel(
          selectInput(inputId = "state",
@@ -24,29 +18,33 @@ ui <- fluidPage(
                      selected = "United States")
       ),
       
-      # Show a plot of the generated distribution
       mainPanel(
          leafletOutput("map")
       )
    )
 )
 
-# Define server logic required to draw a histogram
 server <- function(input, output) {
+  # make reactive points, lines for plotting
+  points <- eventReactive(input$state, {
+    filter(pop_centers, State == input$state)
+  })
+  lines <- eventReactive(input$state, {
+    filter(pop_centers, State == input$state) %>%
+      points_to_line("Long", "Lat")
+  })
+  
   cols <- colorNumeric("YlGnBu", pop_centers$Year)
-   output$map <- renderLeaflet({
-     leaflet(data = filter(pop_centers, State == input$state)) %>%
-       addTiles() %>%
-       addCircleMarkers(~Long, ~Lat,
-         radius = 6,
-         color = ~cols(Year),
-         stroke = FALSE, fillOpacity = 1,
-         popup = ~as.character(Year)
-       ) %>%
-       addPolylines(data = points_to_line(filter(pop_centers, State == input$state), "Long", "Lat"), weight = 3, color = "black")
+  output$map <- renderLeaflet({
+    leaflet(data = points()) %>%
+      addTiles() %>%
+      addCircleMarkers(~Long, ~Lat,
+                       radius = 6,
+                       color = ~cols(Year),
+                       stroke = FALSE, fillOpacity = 1,
+                       popup = ~as.character(Year)) %>%
+      addPolylines(data = lines(), weight = 3, color = "black")
    })
 }
 
-# Run the application 
 shinyApp(ui = ui, server = server)
-
