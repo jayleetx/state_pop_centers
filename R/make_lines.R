@@ -42,5 +42,6 @@ points_to_line <- function(data, long, lat, id_field = NULL, sort_field = NULL) 
   }
 }
 
-load("pop_centers.RData")
-lines <- points_to_line(pop_centers, "Long", "Lat", id_field = "State", sort_field = "Year")
+#load("pop_centers.RData")
+#lines <- points_to_line(pop_centers, "Long", "Lat", id_field = "State", sort_field = "Year")
+#save(lines, file = "lines.RData")
