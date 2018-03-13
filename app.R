@@ -6,6 +6,8 @@ library(dplyr)
 load("pop_centers.RData")
 source("R/make_lines.R")
 
+states <- shapefile('data/state_bounds/cb_2016_us_state_20m.shp')
+
 ui <- fluidPage(
    
    titlePanel("Mean Population Centers, by State"),
@@ -15,7 +17,13 @@ ui <- fluidPage(
          selectInput(inputId = "state",
                      label = "State:",
                      choices = c("United States", state.name),
-                     selected = "United States")
+                     selected = "United States"),
+         
+         selectInput(inputId = "zoom",
+                     label = "Zoom to:",
+                     choices = c("Local", "State"),
+                     selected = "Local",
+                     selectize = FALSE)
       ),
       
       mainPanel(
@@ -33,17 +41,25 @@ server <- function(input, output) {
     filter(pop_centers, State == input$state) %>%
       points_to_line("Long", "Lat")
   })
+  bounds <- eventReactive(input$state, {
+    if (input$state == "United States") subset(states, !(NAME %in% c("Alaska", "Hawaii")))
+    else subset(states, NAME == input$state)
+  })
   
   cols <- colorNumeric("YlGnBu", pop_centers$Year)
   output$map <- renderLeaflet({
-    leaflet(data = points()) %>%
+    leaflet() %>%
       addTiles() %>%
-      addCircleMarkers(~Long, ~Lat,
+      {if(input$zoom == "State") {
+        addPolygons(map = ., data = bounds(), weight = 1, fill = FALSE)
+      } else .} %>%
+      addCircleMarkers(data = points(), group = "mean_centers",
+                       ~Long, ~Lat,
                        radius = 6,
                        color = ~cols(Year),
                        stroke = FALSE, fillOpacity = 1,
                        popup = ~as.character(Year)) %>%
-      addPolylines(data = lines(), weight = 3, color = "black")
+      addPolylines(data = lines(), group = "lines", weight = 3, color = "black")
    })
 }
 
