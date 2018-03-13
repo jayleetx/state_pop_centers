@@ -5,12 +5,10 @@ library(leaflet)
 library(rvest)
 
 # get state data
-temp <- tempfile()
-download.file("http://www2.census.gov/geo/docs/reference/cenpop2010/nat_cop_1880_2010.txt",temp)
-state_pop_centers <- read.csv(temp, na.strings = '', stringsAsFactors = FALSE) %>%
+state_pop_centers <- read.csv("data/state_pop_centers.csv", na.strings = '', stringsAsFactors = FALSE) %>%
   slice(1:51) %>%
   dplyr::select(-X)
-unlink(temp)
+state_pop_centers[25,4] <- "32 59 52" # believed by the census to be an error
 
 # get US data
 url <- "https://www.census.gov/geo/reference/centersofpop/natcentersofpop.html"
@@ -51,9 +49,3 @@ pop_centers <- state_pop_centers %>%
   bind_rows(nat_pop)
 
 save(pop_centers, file = "pop_centers.RData")
-
-or <- leaflet(data = filter(pop_centers, State == 'Oregon')) %>%
-  addTiles() %>%
-  addMarkers(~Long, ~Lat, popup = ~as.character(Year))
-
-or
