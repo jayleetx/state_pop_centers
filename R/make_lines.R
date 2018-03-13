@@ -1,3 +1,7 @@
+library(sp)
+library(maptools)
+library(tibble)
+
 points_to_line <- function(data, long, lat, id_field = NULL, sort_field = NULL) {
   
   # Convert to SpatialPointsDataFrame
@@ -37,3 +41,6 @@ points_to_line <- function(data, long, lat, id_field = NULL, sort_field = NULL) 
     return(sp_lines)
   }
 }
+
+load("pop_centers.RData")
+lines <- points_to_line(pop_centers, "Long", "Lat", id_field = "State", sort_field = "Year")
