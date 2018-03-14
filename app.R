@@ -1,6 +1,7 @@
 library(shiny)
 library(leaflet)
 library(dplyr)
+library(raster)
 #data_files <- c("pop_centers.RData", "lines.RData")
 #lapply(data_files,load,.GlobalEnv)
 load("pop_centers.RData")
