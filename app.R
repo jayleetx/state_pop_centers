@@ -1,4 +1,6 @@
 library(shiny)
+library(rgeos)
+library(rgdal)
 library(leaflet)
 library(dplyr)
 library(raster)
@@ -8,6 +10,7 @@ load("pop_centers.RData")
 source("R/make_lines.R")
 
 states <- shapefile('data/state_bounds/cb_2016_us_state_20m.shp')
+caps <- read.csv("data/state_capitals.csv", stringsAsFactors = FALSE)
 
 ui <- fluidPage(
    
@@ -24,7 +27,9 @@ ui <- fluidPage(
                      label = "Zoom to:",
                      choices = c("Local", "State"),
                      selected = "Local",
-                     selectize = FALSE)
+                     selectize = FALSE),
+         checkboxInput(inputId = "capital",
+                       label = "Show state capital (2018)")
       ),
       
       mainPanel(
@@ -33,7 +38,7 @@ ui <- fluidPage(
    )
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   # make reactive points, lines for plotting
   points <- eventReactive(input$state, {
     filter(pop_centers, State == input$state)
@@ -42,13 +47,29 @@ server <- function(input, output) {
     filter(pop_centers, State == input$state) %>%
       points_to_line("Long", "Lat")
   })
+  # make data for choice of state-sized view
   bounds <- eventReactive(input$state, {
     if (input$state == "United States") subset(states, !(NAME %in% c("Alaska", "Hawaii")))
     else subset(states, NAME == input$state)
   })
+  # clear capital every time the state changes
+  observe({
+    q <- input$state
+    updateCheckboxInput(session, "capital", value = FALSE)
+  })
+  caplat <- eventReactive(input$capital, {
+    caps[caps$name == input$state, "lat"]
+  })
+  caplong <- eventReactive(input$capital, {
+    caps[caps$name == input$state, "long"]
+  })
+  captext <- eventReactive(input$capital, {
+    caps[caps$name == input$state, "capital"]
+  })
   
   cols <- colorNumeric("YlGnBu", pop_centers$Year)
   output$map <- renderLeaflet({
+    
     leaflet() %>%
       addTiles() %>%
       {if(input$zoom == "State") {
@@ -60,7 +81,10 @@ server <- function(input, output) {
                        color = ~cols(Year),
                        stroke = FALSE, fillOpacity = 1,
                        popup = ~as.character(Year)) %>%
-      addPolylines(data = lines(), group = "lines", weight = 3, color = "black")
+      addPolylines(data = lines(), group = "lines", weight = 3, color = "black") %>%
+      {if(input$capital == TRUE) {
+        addAwesomeMarkers(map = ., lng = caplong, lat = caplat, icon = "f005", popup = captext)
+      } else .}
    })
 }
 
