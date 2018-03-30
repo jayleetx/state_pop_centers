@@ -23,3 +23,7 @@ Things this maybe should do
 8. Figure out how to make maps work good
 
 9. d3.js??????????
+
+10. Population at that time
+
+11. Distance from state capital at that time
