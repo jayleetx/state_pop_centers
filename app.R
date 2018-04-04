@@ -57,17 +57,18 @@ server <- function(input, output, session) {
     q <- input$state
     updateCheckboxInput(session, "capital", value = FALSE)
   })
-  caplat <- eventReactive(input$capital, {
-    caps[caps$name == input$state, "lat"]
-  })
-  caplong <- eventReactive(input$capital, {
-    caps[caps$name == input$state, "long"]
-  })
-  captext <- eventReactive(input$capital, {
-    caps[caps$name == input$state, "capital"]
+  cap <- eventReactive(input$capital, {
+    filter(caps, name == input$state)
   })
   
+  # things to change plot
   cols <- colorNumeric("YlGnBu", pop_centers$Year)
+  star <- awesomeIcons(
+    icon = 'star',
+    iconColor = 'white',
+    library = 'fa'
+  )
+  
   output$map <- renderLeaflet({
     
     leaflet() %>%
@@ -81,10 +82,10 @@ server <- function(input, output, session) {
                        color = ~cols(Year),
                        stroke = FALSE, fillOpacity = 1,
                        popup = ~as.character(Year)) %>%
-      addPolylines(data = lines(), group = "lines", weight = 3, color = "black") %>%
-      {if(input$capital == TRUE) {
-        addAwesomeMarkers(map = ., lng = caplong, lat = caplat, icon = "f005", popup = captext)
-      } else .}
+      {if(input$capital) {
+        addAwesomeMarkers(map = ., data = cap(), lng = ~long, lat = ~lat, icon = star, popup = ~capital)
+      } else .} %>%
+      addPolylines(data = lines(), group = "lines", weight = 3, color = "black")
    })
 }
 
