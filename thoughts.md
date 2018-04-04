@@ -4,8 +4,8 @@ Things this maybe should do
 
 2. Compare population centers to
     + geographic centers
-    + capitals
-    + largest cities
+    + (CHECK) capitals
+    + (CHECK) largest cities
 
 3. (CHECK) Have zooming options for 'whole state' and 'region of center movement' (useful in states where population doesn't move a ton)
 

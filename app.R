@@ -6,11 +6,12 @@ library(dplyr)
 library(raster)
 #data_files <- c("pop_centers.RData", "lines.RData")
 #lapply(data_files,load,.GlobalEnv)
-load("pop_centers.RData")
+load("data/pop_centers.RData")
 source("R/make_lines.R")
 
 states <- shapefile('data/state_bounds/cb_2016_us_state_20m.shp')
 caps <- read.csv("data/state_capitals.csv", stringsAsFactors = FALSE)
+cities <- read.csv("data/pop_cities.csv", stringsAsFactors = FALSE)
 
 ui <- fluidPage(
    
@@ -22,14 +23,15 @@ ui <- fluidPage(
                      label = "State:",
                      choices = c("United States", state.name),
                      selected = "United States"),
-         
          selectInput(inputId = "zoom",
                      label = "Zoom to:",
                      choices = c("Local", "State"),
                      selected = "Local",
                      selectize = FALSE),
          checkboxInput(inputId = "capital",
-                       label = "Show state capital (2018)")
+                       label = "Show state capital (2018)"),
+         checkboxInput(inputId = "big_city",
+                       label = "Show most populous city (2013)")
       ),
       
       mainPanel(
@@ -56,9 +58,13 @@ server <- function(input, output, session) {
   observe({
     q <- input$state
     updateCheckboxInput(session, "capital", value = FALSE)
+    updateCheckboxInput(session, "big_city", value = FALSE)
   })
   cap <- eventReactive(input$capital, {
     filter(caps, name == input$state)
+  })
+  city <- eventReactive(input$big_city, {
+    filter(cities, state == input$state)
   })
   
   # things to change plot
@@ -68,9 +74,13 @@ server <- function(input, output, session) {
     iconColor = 'white',
     library = 'fa'
   )
+  building <- awesomeIcons(
+    icon = 'building',
+    iconColor = 'white',
+    library = 'fa'
+  )
   
   output$map <- renderLeaflet({
-    
     leaflet() %>%
       addTiles() %>%
       {if(input$zoom == "State") {
@@ -84,6 +94,10 @@ server <- function(input, output, session) {
                        popup = ~as.character(Year)) %>%
       {if(input$capital) {
         addAwesomeMarkers(map = ., data = cap(), lng = ~long, lat = ~lat, icon = star, popup = ~capital)
+      } else .} %>%
+      {if(input$big_city) {
+        addMarkers(map = ., data = city(), lng = ~longitude, lat = ~latitude,
+                          icon = building, popup = ~city)
       } else .} %>%
       addPolylines(data = lines(), group = "lines", weight = 3, color = "black")
    })

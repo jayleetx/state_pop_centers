@@ -48,4 +48,4 @@ pop_centers <- state_pop_centers %>%
          Long = -as.numeric(Long)) %>%
   bind_rows(nat_pop)
 
-save(pop_centers, file = "pop_centers.RData")
+save(pop_centers, file = "data/pop_centers.RData")
