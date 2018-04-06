@@ -11,9 +11,15 @@ download.file("http://www2.census.gov/geo/docs/reference/cenpop2010/nat_cop_1880
 state_capital_url <- 'https://gist.githubusercontent.com/jpriebe/d62a45e29f24e843c974/raw/b1d3066d245e742018bce56e41788ac7afa60e29/us_state_capitals.json'
 caps <- fromJSON(state_capital_url)
 state_capitals <- data.frame(do.call(rbind, caps), stringsAsFactors = FALSE, row.names = NULL)
-state_capitals <- c("United States", "Washington, D.C.", "38.89511", "-77.03637") %>%
-  rbind(apply(state_capitals, 2, unlist)) %>%
-  data.frame(stringsAsFactors = FALSE)
+state_capitals <- state_capitals %>%
+  rbind(c("United States", "Washington, D.C.", "38.89511", "-77.03637")) %>%
+  data.frame(stringsAsFactors = FALSE) %>%
+  mutate(name = as.character(name),
+         capital = as.character(capital),
+         lat = as.numeric(lat),
+         long = as.numeric(long))
+state_capitals[26, 2] <- "Helena" #typo fom "Helana"
+state_capitals[34, 3] <- state_capitals[34, 3] - 2
 write.csv(state_capitals, file = "data/state_capitals.csv", row.names = FALSE)
 
 ##### biggest cities #####
