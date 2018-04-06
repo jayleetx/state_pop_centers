@@ -3,16 +3,18 @@ library(raster)
 library(jsonlite)
 library(dplyr)
 library(stringr)
+library(maps)
+data(us.cities)
 
 ##### state population centers since 1880 census #####
 download.file("http://www2.census.gov/geo/docs/reference/cenpop2010/nat_cop_1880_2010.txt", 'data/state_pop_centers.csv')
 
 ##### state capitals #####
-state_capital_url <- 'https://gist.githubusercontent.com/jpriebe/d62a45e29f24e843c974/raw/b1d3066d245e742018bce56e41788ac7afa60e29/us_state_capitals.json'
+state_capital_url <- "https://gist.githubusercontent.com/jpriebe/d62a45e29f24e843c974/raw/b1d3066d245e742018bce56e41788ac7afa60e29/us_state_capitals.json"
 caps <- fromJSON(state_capital_url)
-state_capitals <- data.frame(do.call(rbind, caps), stringsAsFactors = FALSE, row.names = NULL)
-state_capitals <- state_capitals %>%
-  rbind(c("United States", "Washington, D.C.", "38.89511", "-77.03637")) %>%
+state_capitals <- data.frame(do.call(rbind, caps), stringsAsFactors = FALSE, row.names = NULL) %>%
+  rbind(c("United States", "Washington, D.C.", "38.89511", "-77.03637"),
+        c("District of Columbia", "Washington", "38.89511", "-77.03637")) %>%
   data.frame(stringsAsFactors = FALSE) %>%
   mutate(name = as.character(name),
          capital = as.character(capital),
@@ -23,25 +25,15 @@ state_capitals[34, 3] <- state_capitals[34, 3] - 2
 write.csv(state_capitals, file = "data/state_capitals.csv", row.names = FALSE)
 
 ##### biggest cities #####
-city_wik <- "https://en.wikipedia.org/wiki/List_of_U.S._states%27_largest_cities_by_population"
-city_page <- read_html(city_wik)
-city_table <- html_nodes(city_page, css = "table")[1]
-pop_cities <- html_table(city_table)[[1]] %>%
-  dplyr::select(1,3,4) %>%
-  rename(state = State,
-         big_city = `Most populous`,
-         city_pop = `City population`)
-pop_cities[11, 2] <- "Honolulu" #remove wikipedia footnote flag
 
 big_city_url <- 'https://gist.githubusercontent.com/Miserlou/c5cd8364bf9b2420bb29/raw/2bf258763cdddd704f8ffd3ea9a3e81d25e2c6f6/cities.json'
 large <- fromJSON(big_city_url)
-big_coords <- data.frame(large, stringsAsFactors = FALSE, row.names = NULL) %>%
+pop_cities <- data.frame(large, stringsAsFactors = FALSE, row.names = NULL) %>%
   dplyr::select(7, 1, 3:5) %>%
   mutate(population = as.numeric(population)) %>%
   group_by(state) %>%
-  top_n(1, population)
-pop_cities <- big_coords %>%
-  rbind(big_coords[1, ]) %>%
+  top_n(1, population) %>%
+  rbind(.[1, ]) %>%
   data.frame(stringsAsFactors = FALSE)
 pop_cities[52, 1] <- "United States"
 pop_cities[52, 2] <- "New York, NY"

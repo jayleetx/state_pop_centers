@@ -21,7 +21,7 @@ ui <- fluidPage(
       sidebarPanel(
          selectInput(inputId = "state",
                      label = "State:",
-                     choices = c("United States", state.name),
+                     choices = unique(pop_centers$State),
                      selected = "United States"),
          selectInput(inputId = "zoom",
                      label = "Zoom to:",
