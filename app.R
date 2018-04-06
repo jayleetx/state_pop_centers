@@ -97,7 +97,9 @@ server <- function(input, output, session) {
       } else .} %>%
       {if(input$big_city) {
         addMarkers(map = ., data = city(), lng = ~longitude, lat = ~latitude,
-                          icon = building, popup = ~city)
+                          icon = building,
+                   popup = paste(city()$city, "<br>",
+                                 "Population:", city()$population))
       } else .} %>%
       addPolylines(data = lines(), group = "lines", weight = 3, color = "black")
    })
