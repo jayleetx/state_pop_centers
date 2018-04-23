@@ -12,6 +12,7 @@ source("R/make_lines.R")
 states <- shapefile('data/state_bounds/cb_2016_us_state_20m.shp')
 caps <- read.csv("data/state_capitals.csv", stringsAsFactors = FALSE)
 cities <- read.csv("data/pop_cities.csv", stringsAsFactors = FALSE)
+geo <- read.csv("data/geo_centers.csv", stringsAsFactors = FALSE)
 
 ui <- fluidPage(
    
@@ -28,6 +29,8 @@ ui <- fluidPage(
                      choices = c("Local", "State"),
                      selected = "Local",
                      selectize = FALSE),
+         checkboxInput(inputId = "geo_cent",
+                       label = "Show geographic center (2018)"),
          checkboxInput(inputId = "capital",
                        label = "Show state capital (2018)"),
          checkboxInput(inputId = "big_city",
@@ -57,8 +60,12 @@ server <- function(input, output, session) {
   # clear capital every time the state changes
   observe({
     q <- input$state
+    updateCheckboxInput(session, "geo_cent", value = FALSE)
     updateCheckboxInput(session, "capital", value = FALSE)
     updateCheckboxInput(session, "big_city", value = FALSE)
+  })
+  geo_pts <- eventReactive(input$geo_cent, {
+    filter(geo, State == input$state)
   })
   cap <- eventReactive(input$capital, {
     filter(caps, name == input$state)
@@ -92,13 +99,17 @@ server <- function(input, output, session) {
                        color = ~cols(Year),
                        stroke = FALSE, fillOpacity = 1,
                        popup = ~as.character(Year)) %>%
+      {if(input$geo_cent) {
+        addMarkers(map = ., data = geo_pts(), lng = ~long, lat = ~lat, icon = building, popup = "Geographic center")
+        } else .} %>%
       {if(input$capital) {
-        addAwesomeMarkers(map = ., data = cap(), lng = ~long, lat = ~lat, icon = star, popup = ~capital)
+        addAwesomeMarkers(map = ., data = cap(), lng = ~long, lat = ~lat, icon = star,
+                          popup = paste("Capital city:", cap()$capital))
       } else .} %>%
       {if(input$big_city) {
         addMarkers(map = ., data = city(), lng = ~longitude, lat = ~latitude,
                           icon = building,
-                   popup = paste(city()$city, "<br>",
+                   popup = paste("Largest city:", city()$city, "<br>",
                                  "Population:", city()$population))
       } else .} %>%
       addPolylines(data = lines(), group = "lines", weight = 3, color = "black")
