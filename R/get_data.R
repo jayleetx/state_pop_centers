@@ -5,7 +5,6 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 library(maps)
-data(us.cities)
 
 abbs <- c(state.abb, "US", "DC")
 names <- c(state.name, "United States", "District of Columbia")
@@ -28,12 +27,9 @@ state_capitals <- data.frame(do.call(rbind, caps), stringsAsFactors = FALSE, row
   mutate(name = as.character(name),
          capital = as.character(capital),
          lat = as.numeric(lat),
-         long = as.numeric(long),
-         abb = swap_abb_name(name)) %>%
-  unite(capital, 2,5, sep = ", ")
-state_capitals[26, 2] <- "Helena, MT" #typo fom "Helana"
+         long = as.numeric(long))
+state_capitals[26, 2] <- "Helena" #typo fom "Helana"
 state_capitals[34, 3] <- state_capitals[34, 3] - 2
-state_capitals[51:52, 2] <- "Washington, D.C."
 write.csv(state_capitals, file = "data/state_capitals.csv", row.names = FALSE)
 
 ##### biggest cities #####
