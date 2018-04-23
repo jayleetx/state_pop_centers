@@ -52,6 +52,22 @@ pop_cities[52, 1] <- "United States"
 pop_cities[52, 2] <- "New York, NY"
 write.csv(pop_cities, file = "data/pop_cities.csv", row.names = FALSE)
 
+##### geographic centers #####
+
+wik_link <- "https://en.wikipedia.org/wiki/List_of_geographic_centers_of_the_United_States"
+geo_cent <- wik_link %>%
+  read_html() %>%
+  html_nodes("table") %>%
+  html_table()
+geo <- geo_cent[[2]] %>%
+  separate(Coordinates, into = c('deg', 'dec', 'other'), sep = ' / ') %>%
+  dplyr::select(State, other) %>%
+  mutate(lat = as.numeric(str_extract(other, "^(\\d|\\.)*")),
+         long = as.numeric(str_extract(other, "-(\\d|\\.)*"))) %>%
+  dplyr::select(-other)
+US <- c("United States", 39.8000, -99.1086)
+geo_centers <- rbind(US, geo)
+write.csv(geo_centers, file = "data/geo_centers.csv", row.names = FALSE)
 
 ##### county/state boundaries #####
 temp <- tempfile()
