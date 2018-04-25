@@ -21,6 +21,7 @@ distances <- list(pop, caps, cities, geo) %>%
             city_dist_met = distCosine(.[ ,c('pop_long', 'pop_lat')], .[ ,c('big_long', 'big_lat')])/1000,
             city_dist_imp = conv_unit(city_dist_met, "km", "mi"),
             geo_dist_met = distCosine(.[ ,c('pop_long', 'pop_lat')], .[ ,c('geo_long', 'geo_lat')])/1000,
-            geo_dist_imp = conv_unit(geo_dist_met, "km", "mi"))
+            geo_dist_imp = conv_unit(geo_dist_met, "km", "mi")) %>%
+  mutate_at(.vars = 2:7, function(x) {format(round(x, 2), nsmall = 2)})
 
 write.csv(distances, file = "data/distances.csv", row.names = FALSE)
