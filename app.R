@@ -13,6 +13,7 @@ states <- shapefile('data/state_bounds/cb_2016_us_state_20m.shp')
 caps <- read.csv("data/state_capitals.csv", stringsAsFactors = FALSE)
 cities <- read.csv("data/pop_cities.csv", stringsAsFactors = FALSE)
 geo <- read.csv("data/geo_centers.csv", stringsAsFactors = FALSE)
+distances <- read.csv('data/distances.csv', stringsAsFactors = FALSE)
 
 ui <- fluidPage(
    
@@ -38,7 +39,8 @@ ui <- fluidPage(
       ),
       
       mainPanel(
-         leafletOutput("map")
+         leafletOutput("map"),
+         htmlOutput(outputId = "dist")
       )
    )
 )
@@ -47,6 +49,9 @@ server <- function(input, output, session) {
   # make reactive points, lines for plotting
   points <- eventReactive(input$state, {
     filter(pop_centers, State == input$state)
+  })
+  dist <- eventReactive(input$state, {
+    filter(distances, state == input$state)
   })
   lines <- eventReactive(input$state, {
     filter(pop_centers, State == input$state) %>%
@@ -114,6 +119,29 @@ server <- function(input, output, session) {
       } else .} %>%
       addPolylines(data = lines(), group = "lines", weight = 3, color = "black")
    })
+  output$dist <- renderUI({
+#    geo_text <- eventReactive(input$geo_cent, {
+#      ifelse(input$geo_cent,
+#             paste("The population center is ", dist()$geo_dist_imp, "miles (",
+#                   dist()$geo_dist_met, " km) from the geographic center.<br/>"),
+#             no = "")
+#    })
+      geo_text <- ifelse(input$geo_cent,
+                         paste0("The 2010 population center is ", dist()$geo_dist_imp, " miles (",
+                               dist()$geo_dist_met, " km) from the geographic center.<br/><br/>"),
+                         no = "")
+      cap_text <- ifelse(input$capital,
+                         paste0("The 2010 population center is ", dist()$cap_dist_imp, " miles (",
+                               dist()$cap_dist_met, " km) from the capital, ",
+                               cap()$capital, ".<br/><br/>"),
+                         no = "")
+      city_text <- ifelse(input$big_city,
+                          paste0("The 2010 population center is ", dist()$city_dist_imp, " miles (",
+                                dist()$city_dist_met, " km) from the largest city, ",
+                                city()$city, "."),
+                          no = "")
+      HTML(paste0("<br/>", geo_text, cap_text, city_text))
+  })
 }
 
 shinyApp(ui = ui, server = server)
