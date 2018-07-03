@@ -1,13 +1,19 @@
 library(shiny)
+library(rgeos)
+library(rgdal)
 library(leaflet)
 library(dplyr)
 library(raster)
 #data_files <- c("pop_centers.RData", "lines.RData")
 #lapply(data_files,load,.GlobalEnv)
-load("pop_centers.RData")
+load("data/pop_centers.RData")
 source("R/make_lines.R")
 
 states <- shapefile('data/state_bounds/cb_2016_us_state_20m.shp')
+caps <- read.csv("data/state_capitals.csv", stringsAsFactors = FALSE)
+cities <- read.csv("data/pop_cities.csv", stringsAsFactors = FALSE)
+geo <- read.csv("data/geo_centers.csv", stringsAsFactors = FALSE)
+distances <- read.csv('data/distances.csv', stringsAsFactors = FALSE)
 
 ui <- fluidPage(
    
@@ -17,37 +23,75 @@ ui <- fluidPage(
       sidebarPanel(
          selectInput(inputId = "state",
                      label = "State:",
-                     choices = c("United States", state.name),
+                     choices = unique(pop_centers$State),
                      selected = "United States"),
-         
          selectInput(inputId = "zoom",
                      label = "Zoom to:",
                      choices = c("Local", "State"),
                      selected = "Local",
-                     selectize = FALSE)
+                     selectize = FALSE),
+         checkboxInput(inputId = "geo_cent",
+                       label = "Show geographic center (2018)"),
+         checkboxInput(inputId = "capital",
+                       label = "Show state capital (2018)"),
+         checkboxInput(inputId = "big_city",
+                       label = "Show most populous city (2013)")
       ),
       
       mainPanel(
-         leafletOutput("map")
+         leafletOutput("map"),
+         htmlOutput(outputId = "dist")
       )
    )
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   # make reactive points, lines for plotting
   points <- eventReactive(input$state, {
     filter(pop_centers, State == input$state)
+  })
+  dist <- eventReactive(input$state, {
+    filter(distances, state == input$state)
   })
   lines <- eventReactive(input$state, {
     filter(pop_centers, State == input$state) %>%
       points_to_line("Long", "Lat")
   })
+  # make data for choice of state-sized view
   bounds <- eventReactive(input$state, {
     if (input$state == "United States") subset(states, !(NAME %in% c("Alaska", "Hawaii")))
     else subset(states, NAME == input$state)
   })
+  # clear capital every time the state changes
+  observe({
+    q <- input$state
+    updateCheckboxInput(session, "geo_cent", value = FALSE)
+    updateCheckboxInput(session, "capital", value = FALSE)
+    updateCheckboxInput(session, "big_city", value = FALSE)
+  })
+  geo_pts <- eventReactive(input$geo_cent, {
+    filter(geo, State == input$state)
+  })
+  cap <- eventReactive(input$capital, {
+    filter(caps, name == input$state)
+  })
+  city <- eventReactive(input$big_city, {
+    filter(cities, state == input$state)
+  })
   
+  # things to change plot
   cols <- colorNumeric("YlGnBu", pop_centers$Year)
+  star <- awesomeIcons(
+    icon = 'star',
+    iconColor = 'white',
+    library = 'fa'
+  )
+  building <- awesomeIcons(
+    icon = 'building',
+    iconColor = 'white',
+    library = 'fa'
+  )
+  
   output$map <- renderLeaflet({
     leaflet() %>%
       addTiles() %>%
@@ -60,8 +104,44 @@ server <- function(input, output) {
                        color = ~cols(Year),
                        stroke = FALSE, fillOpacity = 1,
                        popup = ~as.character(Year)) %>%
+      {if(input$geo_cent) {
+        addMarkers(map = ., data = geo_pts(), lng = ~long, lat = ~lat, icon = building, popup = "Geographic center")
+        } else .} %>%
+      {if(input$capital) {
+        addAwesomeMarkers(map = ., data = cap(), lng = ~long, lat = ~lat, icon = star,
+                          popup = paste("Capital city:", cap()$capital))
+      } else .} %>%
+      {if(input$big_city) {
+        addMarkers(map = ., data = city(), lng = ~longitude, lat = ~latitude,
+                          icon = building,
+                   popup = paste("Largest city:", city()$city, "<br>",
+                                 "Population:", city()$population))
+      } else .} %>%
       addPolylines(data = lines(), group = "lines", weight = 3, color = "black")
    })
+  output$dist <- renderUI({
+#    geo_text <- eventReactive(input$geo_cent, {
+#      ifelse(input$geo_cent,
+#             paste("The population center is ", dist()$geo_dist_imp, "miles (",
+#                   dist()$geo_dist_met, " km) from the geographic center.<br/>"),
+#             no = "")
+#    })
+      geo_text <- ifelse(input$geo_cent,
+                         paste0("The 2010 population center is ", dist()$geo_dist_imp, " miles (",
+                               dist()$geo_dist_met, " km) from the geographic center.<br/><br/>"),
+                         no = "")
+      cap_text <- ifelse(input$capital,
+                         paste0("The 2010 population center is ", dist()$cap_dist_imp, " miles (",
+                               dist()$cap_dist_met, " km) from the capital, ",
+                               cap()$capital, ".<br/><br/>"),
+                         no = "")
+      city_text <- ifelse(input$big_city,
+                          paste0("The 2010 population center is ", dist()$city_dist_imp, " miles (",
+                                dist()$city_dist_met, " km) from the largest city, ",
+                                city()$city, "."),
+                          no = "")
+      HTML(paste0("<br/>", geo_text, cap_text, city_text))
+  })
 }
 
 shinyApp(ui = ui, server = server)

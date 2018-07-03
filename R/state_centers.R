@@ -45,7 +45,7 @@ pop_centers <- state_pop_centers %>%
          Long = change_coord(Long)) %>%
   mutate(Year = as.numeric(Year),
          Lat = as.numeric(Lat),
-         Long = -as.numeric(Long)) %>%
-  bind_rows(nat_pop)
+         Long = -as.numeric(Long))
+pop_centers <- bind_rows(nat_pop, pop_centers)
 
-save(pop_centers, file = "pop_centers.RData")
+save(pop_centers, file = "data/pop_centers.RData")
